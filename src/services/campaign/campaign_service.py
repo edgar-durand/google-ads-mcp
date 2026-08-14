@@ -212,9 +212,9 @@ class CampaignService:
             )
 
             if start_date:
-                campaign.start_date = start_date.replace("-", "")
+                campaign.start_date_time = f"{start_date} 00:00:00"
             if end_date:
-                campaign.end_date = end_date.replace("-", "")
+                campaign.end_date_time = f"{end_date} 23:59:59"
 
             operation = CampaignOperation()
             operation.create = campaign
@@ -291,12 +291,12 @@ class CampaignService:
                 update_mask_fields.append("status")
 
             if start_date is not None:
-                campaign.start_date = start_date.replace("-", "")
-                update_mask_fields.append("start_date")
+                campaign.start_date_time = f"{start_date} 00:00:00"
+                update_mask_fields.append("start_date_time")
 
             if end_date is not None:
-                campaign.end_date = end_date.replace("-", "")
-                update_mask_fields.append("end_date")
+                campaign.end_date_time = f"{end_date} 23:59:59"
+                update_mask_fields.append("end_date_time")
 
             if bidding_strategy_type is not None:
                 bst = bidding_strategy_type.upper()

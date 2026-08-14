@@ -13,10 +13,12 @@ from google.ads.googleads.v23.services.types.audience_insights_service import (
     GenerateAudienceCompositionInsightsResponse,
     GenerateSuggestedTargetingInsightsRequest,
     GenerateSuggestedTargetingInsightsResponse,
-    BasicInsightsAudience,
     InsightsAudience,
     InsightsAudienceAttributeGroup,
     InsightsAudienceDefinition,
+)
+from google.ads.googleads.v23.common.types.audience_insights_attribute import (
+    AudienceInsightsAttribute,
 )
 from google.ads.googleads.v23.common.types.criteria import (
     AgeRangeInfo,
@@ -95,13 +97,13 @@ class AudienceInsightsService:
             customer_id = format_customer_id(customer_id)
 
             # Create baseline audience
-            baseline_audience = BasicInsightsAudience()
+            baseline_audience = InsightsAudience()
 
             # Add countries
             for country_id in baseline_audience_countries:
                 location = LocationInfo()
                 location.geo_target_constant = f"geoTargetConstants/{country_id}"
-                baseline_audience.country_location.append(location)
+                baseline_audience.country_locations.append(location)
 
             # Add age ranges if provided
             if baseline_audience_ages:
@@ -112,7 +114,7 @@ class AudienceInsightsService:
                     )
                     baseline_audience.age_ranges.append(age_info)
 
-            # Add gender if provided (BasicInsightsAudience only supports one gender)
+            # Add gender if provided (InsightsAudience only supports one gender)
             if baseline_audience_genders and len(baseline_audience_genders) > 0:
                 gender_info = GenderInfo()
                 gender_info.type_ = getattr(
@@ -120,14 +122,14 @@ class AudienceInsightsService:
                 )
                 baseline_audience.gender = gender_info
 
-            # Create specific audience (also BasicInsightsAudience)
-            specific_audience = BasicInsightsAudience()
+            # Create specific audience (also InsightsAudience)
+            specific_audience = InsightsAudience()
 
             # Add countries
             for country_id in specific_audience_countries:
                 location = LocationInfo()
                 location.geo_target_constant = f"geoTargetConstants/{country_id}"
-                specific_audience.country_location.append(location)
+                specific_audience.country_locations.append(location)
 
             # Add age ranges if provided
             if specific_audience_ages:
@@ -138,7 +140,7 @@ class AudienceInsightsService:
                     )
                     specific_audience.age_ranges.append(age_info)
 
-            # Add gender if provided (BasicInsightsAudience only supports one gender)
+            # Add gender if provided (InsightsAudience only supports one gender)
             if specific_audience_genders and len(specific_audience_genders) > 0:
                 gender_info = GenderInfo()
                 gender_info.type_ = getattr(
@@ -146,14 +148,20 @@ class AudienceInsightsService:
                 )
                 specific_audience.gender = gender_info
 
-            # Add user interests if provided
+            # Add user interests if provided (v23: InsightsAudience has no
+            # user_interests field; interests are OR-combined attributes
+            # inside a single InsightsAudienceAttributeGroup)
             if specific_audience_user_interests:
+                interest_group = InsightsAudienceAttributeGroup()
                 for interest_id in specific_audience_user_interests:
                     interest_info = UserInterestInfo()
                     interest_info.user_interest_category = (
                         f"customers/{customer_id}/userInterests/{interest_id}"
                     )
-                    specific_audience.user_interests.append(interest_info)
+                    attribute = AudienceInsightsAttribute()
+                    attribute.user_interest = interest_info
+                    interest_group.attributes.append(attribute)
+                specific_audience.topic_audience_combinations.append(interest_group)
 
             # Create request
             request = GenerateInsightsFinderReportRequest()
