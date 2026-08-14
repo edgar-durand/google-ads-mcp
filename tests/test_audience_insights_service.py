@@ -5,15 +5,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Context
-from google.ads.googleads.v20.enums.types.audience_insights_dimension import (
+from google.ads.googleads.v23.enums.types.audience_insights_dimension import (
     AudienceInsightsDimensionEnum,
 )
-from google.ads.googleads.v20.enums.types.age_range_type import AgeRangeTypeEnum
-from google.ads.googleads.v20.enums.types.gender_type import GenderTypeEnum
-from google.ads.googleads.v20.services.services.audience_insights_service import (
+from google.ads.googleads.v23.enums.types.age_range_type import AgeRangeTypeEnum
+from google.ads.googleads.v23.enums.types.gender_type import GenderTypeEnum
+from google.ads.googleads.v23.services.services.audience_insights_service import (
     AudienceInsightsServiceClient,
 )
-from google.ads.googleads.v20.services.types.audience_insights_service import (
+from google.ads.googleads.v23.services.types.audience_insights_service import (
     GenerateInsightsFinderReportResponse,
     GenerateAudienceCompositionInsightsResponse,
     GenerateSuggestedTargetingInsightsResponse,

@@ -3,10 +3,10 @@
 from typing import Any, Dict, List, Optional, Callable, Awaitable
 
 from fastmcp import Context, FastMCP
-from google.ads.googleads.v20.services.services.audience_insights_service import (
+from google.ads.googleads.v23.services.services.audience_insights_service import (
     AudienceInsightsServiceClient,
 )
-from google.ads.googleads.v20.services.types.audience_insights_service import (
+from google.ads.googleads.v23.services.types.audience_insights_service import (
     GenerateInsightsFinderReportRequest,
     GenerateInsightsFinderReportResponse,
     GenerateAudienceCompositionInsightsRequest,
@@ -18,17 +18,17 @@ from google.ads.googleads.v20.services.types.audience_insights_service import (
     InsightsAudienceAttributeGroup,
     InsightsAudienceDefinition,
 )
-from google.ads.googleads.v20.common.types.criteria import (
+from google.ads.googleads.v23.common.types.criteria import (
     AgeRangeInfo,
     GenderInfo,
     LocationInfo,
     UserInterestInfo,
 )
-from google.ads.googleads.v20.enums.types.audience_insights_dimension import (
+from google.ads.googleads.v23.enums.types.audience_insights_dimension import (
     AudienceInsightsDimensionEnum,
 )
-from google.ads.googleads.v20.enums.types.age_range_type import AgeRangeTypeEnum
-from google.ads.googleads.v20.enums.types.gender_type import GenderTypeEnum
+from google.ads.googleads.v23.enums.types.age_range_type import AgeRangeTypeEnum
+from google.ads.googleads.v23.enums.types.gender_type import GenderTypeEnum
 from google.ads.googleads.errors import GoogleAdsException
 
 from src.sdk_client import get_sdk_client
@@ -56,7 +56,7 @@ class AudienceInsightsService:
         if self._client is None:
             sdk_client = get_sdk_client()
             self._client = sdk_client.client.get_service(
-                "AudienceInsightsService", version="v20"
+                "AudienceInsightsService", version="v23"
             )
         assert self._client is not None
         return self._client
