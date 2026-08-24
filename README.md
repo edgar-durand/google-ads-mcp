@@ -109,6 +109,41 @@ Available groups:
 | `account` | Access, manager links, billing, payments, identity, product/data links |
 | `other` | Smart campaigns, batch jobs, user data |
 
+Mount individual servers instead of a whole group with `--servers` (values are
+the mount prefixes listed in `SERVER_GROUPS` in `main.py`). Useful when a group
+would blow the client's tool/context budget:
+
+```bash
+# keyword research + forecasting on top of core, without the rest of `planning`
+uv run main.py --groups core --servers keyword_plan_idea
+```
+
+### Keyword research and forecasting
+
+`keyword_plan_idea` carries the Keyword Planner tools. They require **Basic**
+(or Standard) API access — under Explorer access the planning services are
+blocked.
+
+| Tool | Use |
+|------|-----|
+| `generate_keyword_ideas_from_keywords` / `_from_url` / `_from_site` / `_from_keywords_and_url` | Discover keywords (seeds are expanded) |
+| `generate_keyword_historical_metrics` | Search volume for an **explicit** keyword list (no expansion) |
+| `generate_keyword_forecast_metrics` | Forecast impressions/clicks/cost/CTR/avg-CPC at a daily budget |
+
+`generate_keyword_forecast_metrics` is read-only — it creates no `KeywordPlan`
+resources and spends nothing. In v23 `KeywordPlanService` only exposes
+`mutate_keyword_plans`; the old `GenerateForecastMetrics` /
+`GenerateForecastCurve` / `GenerateHistoricalMetrics` RPCs moved to
+`KeywordPlanIdeaService`.
+
+Gotchas:
+
+- Per-keyword / per-ad-group `max_cpc_bid_micros` are accepted **only** with
+  `bidding_strategy="MANUAL_CPC"`. Sending them alongside `MAXIMIZE_CLICKS` or
+  `MAXIMIZE_CONVERSIONS` fails with `keyword_plan_idea_error: INVALID_VALUE`.
+  Under the automated strategies the bid is applied as the strategy ceiling.
+- All planning RPCs are rate limited to roughly **1 request per second**.
+
 ## MCP Client
 
 Example stdio configuration:

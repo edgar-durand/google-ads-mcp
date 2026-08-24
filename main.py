@@ -196,6 +196,11 @@ Examples:
   uv run main.py --groups all       # Mount all servers
   uv run main.py --groups core      # Mount only core services
   uv run main.py --groups core,assets,targeting  # Mount specific groups
+  uv run main.py --groups core --servers keyword_plan_idea  # Add single servers
+
+Use --servers to pull in individual servers by their mount prefix instead of a
+whole group, when tool count / context budget matters. Prefixes are the first
+element of each entry in SERVER_GROUPS (e.g. keyword_plan_idea, geo_target).
 """,
     )
 
@@ -204,6 +209,17 @@ Examples:
         type=str,
         default="core",
         help="Comma-separated list of server groups to mount (default: core)",
+    )
+
+    parser.add_argument(
+        "--servers",
+        type=str,
+        default="",
+        help=(
+            "Comma-separated list of INDIVIDUAL server prefixes to mount in "
+            "addition to --groups (e.g. 'keyword_plan_idea'). Lets you add a "
+            "few tools without paying the context cost of a whole group."
+        ),
     )
 
     return parser.parse_args()
@@ -389,37 +405,57 @@ SERVER_GROUPS = {
 }
 
 
-def get_servers_to_mount(groups_arg: str) -> Set[tuple[str, Any]]:
-    """Get the set of servers to mount based on the groups argument."""
+def get_servers_to_mount(
+    groups_arg: str, servers_arg: str = ""
+) -> Set[tuple[str, Any]]:
+    """Get the set of servers to mount.
+
+    Args:
+        groups_arg: Comma-separated group names, or "all".
+        servers_arg: Comma-separated individual server prefixes to add on top.
+    """
+    servers_to_mount: Set[tuple[str, Any]] = set()
+
     if groups_arg == "all":
-        # Return all servers from all groups
-        all_servers = set()
         for servers in SERVER_GROUPS.values():
-            all_servers.update(servers)
-        return all_servers
+            servers_to_mount.update(servers)
+    else:
+        for group in (g.strip() for g in groups_arg.split(",")):
+            if not group:
+                continue
+            if group in SERVER_GROUPS:
+                servers_to_mount.update(SERVER_GROUPS[group])
+            else:
+                logger.warning(f"Unknown server group: {group}")
 
-    # Parse requested groups
-    requested_groups = [g.strip() for g in groups_arg.split(",")]
-    servers_to_mount = set()
-
-    for group in requested_groups:
-        if group in SERVER_GROUPS:
-            servers_to_mount.update(SERVER_GROUPS[group])
-        else:
-            logger.warning(f"Unknown server group: {group}")
+    if servers_arg:
+        by_prefix = {
+            prefix: server
+            for servers in SERVER_GROUPS.values()
+            for prefix, server in servers
+        }
+        for prefix in (s.strip() for s in servers_arg.split(",")):
+            if not prefix:
+                continue
+            if prefix in by_prefix:
+                servers_to_mount.add((prefix, by_prefix[prefix]))
+            else:
+                logger.warning(f"Unknown server prefix: {prefix}")
 
     return servers_to_mount
 
 
 # Parse command line arguments
 args = parse_arguments()
-servers_to_mount = get_servers_to_mount(args.groups)
+servers_to_mount = get_servers_to_mount(args.groups, args.servers)
 
 # Log which groups are being mounted
 if args.groups == "all":
     logger.info("Mounting all server groups")
 else:
     logger.info(f"Mounting server groups: {args.groups}")
+if args.servers:
+    logger.info(f"Mounting extra servers: {args.servers}")
 
 # Mount the selected servers
 for prefix, server in servers_to_mount:
