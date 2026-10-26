@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from fastmcp import Context, FastMCP
 from google.ads.googleads.errors import GoogleAdsException
-from google.ads.googleads.v20.common.types.bidding import (
+from google.ads.googleads.v23.common.types.bidding import (
     ManualCpc,
     MaximizeConversions,
     MaximizeConversionValue,
@@ -13,24 +13,24 @@ from google.ads.googleads.v20.common.types.bidding import (
     TargetRoas,
     TargetSpend,
 )
-from google.ads.googleads.v20.enums.types.advertising_channel_sub_type import (
+from google.ads.googleads.v23.enums.types.advertising_channel_sub_type import (
     AdvertisingChannelSubTypeEnum,
 )
-from google.ads.googleads.v20.enums.types.advertising_channel_type import (
+from google.ads.googleads.v23.enums.types.advertising_channel_type import (
     AdvertisingChannelTypeEnum,
 )
-from google.ads.googleads.v20.enums.types.campaign_experiment_type import (
+from google.ads.googleads.v23.enums.types.campaign_experiment_type import (
     CampaignExperimentTypeEnum,
 )
-from google.ads.googleads.v20.enums.types.campaign_status import CampaignStatusEnum
-from google.ads.googleads.v20.enums.types.eu_political_advertising_status import (
+from google.ads.googleads.v23.enums.types.campaign_status import CampaignStatusEnum
+from google.ads.googleads.v23.enums.types.eu_political_advertising_status import (
     EuPoliticalAdvertisingStatusEnum,
 )
-from google.ads.googleads.v20.resources.types.campaign import Campaign
-from google.ads.googleads.v20.services.services.campaign_service import (
+from google.ads.googleads.v23.resources.types.campaign import Campaign
+from google.ads.googleads.v23.services.services.campaign_service import (
     CampaignServiceClient,
 )
-from google.ads.googleads.v20.services.types.campaign_service import (
+from google.ads.googleads.v23.services.types.campaign_service import (
     CampaignOperation,
     MutateCampaignsRequest,
     MutateCampaignsResponse,
@@ -117,7 +117,7 @@ class CampaignService:
         if self._client is None:
             sdk_client = get_sdk_client()
             self._client = sdk_client.client.get_service(
-                "CampaignService", version="v20"
+                "CampaignService", version="v23"
             )
         assert self._client is not None
         return self._client
@@ -141,6 +141,7 @@ class CampaignService:
         target_spend_cpc_bid_ceiling_micros: Optional[int] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
+        contains_eu_political_advertising: EuPoliticalAdvertisingStatusEnum.EuPoliticalAdvertisingStatus = EuPoliticalAdvertisingStatusEnum.EuPoliticalAdvertisingStatus.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING,
     ) -> Dict[str, Any]:
         """Create a new campaign.
 
@@ -162,6 +163,11 @@ class CampaignService:
             target_spend_cpc_bid_ceiling_micros: CPC ceiling (for TARGET_SPEND)
             start_date: Campaign start date (YYYY-MM-DD)
             end_date: Campaign end date (YYYY-MM-DD)
+            contains_eu_political_advertising: Whether the campaign contains EU
+                political advertising, as required by the API on every campaign
+                create as of v20 (DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING or
+                CONTAINS_EU_POLITICAL_ADVERTISING). Defaults to
+                DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING.
 
         Returns:
             Created campaign details
@@ -178,7 +184,9 @@ class CampaignService:
             if advertising_channel_sub_type is not None:
                 campaign.advertising_channel_sub_type = advertising_channel_sub_type
 
-            campaign.contains_eu_political_advertising = EuPoliticalAdvertisingStatusEnum.EuPoliticalAdvertisingStatus.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
+            campaign.contains_eu_political_advertising = (
+                contains_eu_political_advertising
+            )
             campaign.experiment_type = (
                 CampaignExperimentTypeEnum.CampaignExperimentType.BASE
             )
@@ -204,9 +212,9 @@ class CampaignService:
             )
 
             if start_date:
-                campaign.start_date = start_date.replace("-", "")
+                campaign.start_date_time = f"{start_date} 00:00:00"
             if end_date:
-                campaign.end_date = end_date.replace("-", "")
+                campaign.end_date_time = f"{end_date} 23:59:59"
 
             operation = CampaignOperation()
             operation.create = campaign
@@ -283,12 +291,12 @@ class CampaignService:
                 update_mask_fields.append("status")
 
             if start_date is not None:
-                campaign.start_date = start_date.replace("-", "")
-                update_mask_fields.append("start_date")
+                campaign.start_date_time = f"{start_date} 00:00:00"
+                update_mask_fields.append("start_date_time")
 
             if end_date is not None:
-                campaign.end_date = end_date.replace("-", "")
-                update_mask_fields.append("end_date")
+                campaign.end_date_time = f"{end_date} 23:59:59"
+                update_mask_fields.append("end_date_time")
 
             if bidding_strategy_type is not None:
                 bst = bidding_strategy_type.upper()
@@ -370,6 +378,7 @@ def create_campaign_tools(
         target_spend_cpc_bid_ceiling_micros: Optional[int] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
+        contains_eu_political_advertising: str = "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
     ) -> Dict[str, Any]:
         """Create a new campaign. Supports Search, Display, Shopping, Video, and Performance Max.
 
@@ -391,6 +400,14 @@ def create_campaign_tools(
             target_spend_cpc_bid_ceiling_micros: Max CPC ceiling in micros (for TARGET_SPEND)
             start_date: Campaign start date (YYYY-MM-DD)
             end_date: Campaign end date (YYYY-MM-DD)
+            contains_eu_political_advertising: REQUIRED by the Google Ads API on
+                every campaign create as of v20 -- omitting it is not an option,
+                the API rejects creation with "The required field was not
+                present". One of DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING or
+                CONTAINS_EU_POLITICAL_ADVERTISING. Defaults to
+                DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING; set to
+                CONTAINS_EU_POLITICAL_ADVERTISING for campaigns that contain EU
+                political advertising.
 
         Returns:
             Created campaign details with resource_name and campaign_id
@@ -409,6 +426,11 @@ def create_campaign_tools(
             if advertising_channel_sub_type
             else None
         )
+        eu_political_advertising_enum = resolve_enum(
+            EuPoliticalAdvertisingStatusEnum.EuPoliticalAdvertisingStatus,
+            contains_eu_political_advertising,
+            "contains_eu_political_advertising",
+        )
 
         return await service.create_campaign(
             ctx=ctx,
@@ -426,6 +448,7 @@ def create_campaign_tools(
             target_spend_cpc_bid_ceiling_micros=target_spend_cpc_bid_ceiling_micros,
             start_date=start_date,
             end_date=end_date,
+            contains_eu_political_advertising=eu_political_advertising_enum,
         )
 
     async def update_campaign(
