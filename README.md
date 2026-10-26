@@ -11,18 +11,32 @@
 Built by [**Promobase**](https://openpromo.app) for [**OpenPromo**](https://openpromo.app), the AI-native workspace for creating, publishing, and managing ads.
 
 [![Python](https://img.shields.io/badge/python-3.12%2B-3776AB.svg)](https://www.python.org/)
-[![Google Ads API](https://img.shields.io/badge/Google%20Ads%20API-v20-4285F4.svg)](https://developers.google.com/google-ads/api/docs/start)
+[![Google Ads API](https://img.shields.io/badge/Google%20Ads%20API-v23-4285F4.svg)](https://developers.google.com/google-ads/api/docs/start)
 [![FastMCP](https://img.shields.io/badge/MCP-FastMCP-111827.svg)](https://github.com/jlowin/fastmcp)
 [![CI](https://github.com/promobase/google-ads-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/promobase/google-ads-mcp/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 </div>
 
+> **Maintained fork, works on Google Ads API v23.** Google no longer serves API
+> v20, which the original [promobase/google-ads-mcp](https://github.com/promobase/google-ads-mcp)
+> still targets, so its calls fail. This fork migrates every service to **v23**
+> (full test suite passing, verified against a live account) and adds:
+>
+> - the v23 field changes (`start_date_time`/`end_date_time`, the required
+>   `contains_eu_political_advertising` on campaign create, the new audience-insights shapes);
+> - a fix for the paginated `search_google_ads` crash serializing `field_mask`;
+> - Keyword Planner **historical metrics and forecasts** (moved to
+>   `KeywordPlanIdeaService` in v23);
+> - `--servers` to mount single services instead of whole groups;
+> - an agent skill, [`skills/google-ads-ops`](./skills/google-ads-ops/SKILL.md),
+>   with spend guardrails and the gotchas that bite agents in production.
+
 ---
 
 ## What
 
-`google-ads-mcp` wraps the official Google Ads Python SDK in a Model Context Protocol server. It exposes Google Ads API v20 services as typed MCP tools, so LLMs and agent runtimes can safely inspect accounts, create campaigns, manage budgets, upload conversions, work with assets, and run GAQL search.
+`google-ads-mcp` wraps the official Google Ads Python SDK in a Model Context Protocol server. It exposes Google Ads API v23 services as typed MCP tools, so LLMs and agent runtimes can safely inspect accounts, create campaigns, manage budgets, upload conversions, work with assets, and run GAQL search.
 
 This repo is the Google Ads execution layer behind OpenPromo's agent workflows. For application-facing, multi-platform ad publishing and inbox automation, use the companion SDK:
 
@@ -33,7 +47,7 @@ This repo is the Google Ads execution layer behind OpenPromo's agent workflows. 
 Google Ads has a large, typed API surface, but it is hard for agents to use directly. This server keeps the reliability of the official Python SDK while giving agents a structured tool interface:
 
 - **Official SDK foundation** - built on `google-ads`, including its auth, retries, paging, and protobuf types.
-- **Typed service wrappers** - implementations use Google Ads API v20 generated service, resource, enum, and operation types.
+- **Typed service wrappers** - implementations use Google Ads API v23 generated service, resource, enum, and operation types.
 - **Agent-ready MCP tools** - FastMCP servers grouped by workflow: core, assets, targeting, bidding, planning, reporting, conversions, account management, and more.
 - **GAQL access** - search and metadata tools for reporting, discovery, and account inspection.
 - **Production-oriented scope** - designed for OpenPromo's ads loop: generate creative, build campaigns, publish, measure, and iterate.
@@ -44,7 +58,7 @@ Current tracker status:
 
 | Area | Status |
 |------|--------|
-| Google Ads API version | `v20` |
+| Google Ads API version | `v23` |
 | Implemented services | `90 / 103` |
 | Coverage model | 1:1 service mapping where implemented |
 | Type policy | Generated Google Ads protobuf types |
@@ -56,7 +70,7 @@ Core campaign, ad group, ad, budget, keyword, conversion, asset, audience, recom
 ## Install
 
 ```bash
-git clone https://github.com/promobase/google-ads-mcp.git
+git clone https://github.com/edgar-durand/google-ads-mcp.git
 cd google-ads-mcp
 uv sync
 ```
@@ -144,6 +158,25 @@ Gotchas:
   Under the automated strategies the bid is applied as the strategy ceiling.
 - All planning RPCs are rate limited to roughly **1 request per second**.
 
+## Agent skill
+
+[`skills/google-ads-ops/SKILL.md`](./skills/google-ads-ops/SKILL.md) teaches an
+agent to run an account safely through this server. It covers:
+
+- spend guardrails: explicit budget and duration, create paused, `validate_only` first;
+- the v23 breaking changes;
+- the Android installs that show as 0 in `conversions` (read `all_conversions`);
+- the camelCase `update_mask`;
+- a working App-campaign template;
+- keyword forecasting pitfalls.
+
+It is a standard `SKILL.md`, so it works with Claude Code, Cursor, Codex and
+other agents that load skills:
+
+```bash
+mkdir -p ~/.claude/skills && cp -r skills/google-ads-ops ~/.claude/skills/
+```
+
 ## MCP Client
 
 Example stdio configuration:
@@ -183,7 +216,7 @@ uv run pytest
 
 When adding a service:
 
-1. Check the Google Ads API v20 generated service types.
+1. Check the Google Ads API v23 generated service types.
 2. Implement the service wrapper with generated protobuf request, operation, resource, and enum types.
 3. Register lightweight MCP tools for the service.
 4. Add focused tests.
