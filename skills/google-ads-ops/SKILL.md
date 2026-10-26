@@ -17,9 +17,14 @@ Ask the user for these and keep them in the conversation. Never guess an ID.
 - **Operating customer ID** (the client account, 10 digits, no hyphens). With a
   manager account (MCC), set `GOOGLE_ADS_LOGIN_CUSTOMER_ID` to the MCC and
   operate on the client ID.
-- **API access level** of the developer token (MCC, Tools & settings, API
-  Center): *Explorer* (2,880 ops/day, **no** Keyword Planner), *Basic*
-  (15,000 ops/day, Keyword Planner works) or *Standard*.
+- **API access level of the Google Cloud project** behind the service account
+  or OAuth client: *Test*, *Explorer* (2,880 ops/day, **no** Keyword
+  Planner), *Basic* (15,000 ops/day, Keyword Planner works) or *Standard*.
+  It is shown and requested on the Google Ads API page of the Cloud Console.
+- **No developer token.** Google retired them on 2026-09-09: the API ignores
+  the header and a future version will reject it. Don't ask the user for one.
+  Prefer a **service account** added as a user of the Ads account; an OAuth
+  refresh token also works.
 - **Which conversion actions are primary** (query them, section 4).
 - **Campaigns the agent must never touch** (brand campaigns, anything the user
   manages by hand).
@@ -43,6 +48,10 @@ every time:
 6. Read-only reporting and forecasting need no confirmation.
 
 ## 2. API v23 breaking changes (v20 is blocked by Google)
+
+- **Auth without a developer token** needs the Python `google-ads` library
+  **≥ 34**. Older versions refuse to load a config that lacks
+  `developer_token`.
 
 - **`Campaign.start_date` / `end_date` no longer exist.** Use
   `start_date_time` / `end_date_time` in `"yyyy-MM-dd HH:mm:ss"` format on
@@ -146,7 +155,7 @@ ORDER BY metrics.cost_micros DESC
 
 ## 6. Keyword research and forecasting
 
-Needs **Basic** access or above (Explorer returns nothing). Planning RPCs are
+Needs **Basic** access or above on the Cloud project (Explorer returns nothing). Planning RPCs are
 rate limited to about **1 request per second**.
 
 | Need | Call |
