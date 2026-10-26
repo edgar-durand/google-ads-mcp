@@ -29,6 +29,8 @@ Built by [**Promobase**](https://openpromo.app) for [**OpenPromo**](https://open
 > - Keyword Planner **historical metrics and forecasts** (moved to
 >   `KeywordPlanIdeaService` in v23);
 > - `--servers` to mount single services instead of whole groups;
+> - no developer token: Google retired them on 2026-09-09, and `google-ads` 34
+>   no longer requires one (service account or OAuth only);
 > - an agent skill, [`skills/google-ads-ops`](./skills/google-ads-ops/SKILL.md),
 >   with spend guardrails and the gotchas that bite agents in production.
 
@@ -77,12 +79,28 @@ uv sync
 
 Create a `.env` file or export the required Google Ads credentials:
 
+No developer token is needed: Google retired developer tokens on
+**2026-09-09**. API access now belongs to the **Google Cloud project** that owns
+your service account or OAuth client; request the access level (Explorer,
+Basic, Standard) on the Google Ads API page of the Cloud Console. A manager
+account (MCC) is no longer required to use the API.
+
+Service account (recommended for agents and servers). Add the service account's
+email as a user of the Google Ads account, then:
+
 ```bash
-GOOGLE_ADS_DEVELOPER_TOKEN="your_developer_token"
+GOOGLE_ADS_JSON_KEY_FILE_PATH="/path/to/service-account.json"
+GOOGLE_ADS_USE_PROTO_PLUS="true"
+GOOGLE_ADS_LOGIN_CUSTOMER_ID="optional_manager_customer_id"
+```
+
+Or OAuth with a refresh token:
+
+```bash
 GOOGLE_ADS_CLIENT_ID="your_client_id"
 GOOGLE_ADS_CLIENT_SECRET="your_client_secret"
 GOOGLE_ADS_REFRESH_TOKEN="your_refresh_token"
-GOOGLE_ADS_LOGIN_CUSTOMER_ID="optional_manager_customer_id"
+GOOGLE_ADS_USE_PROTO_PLUS="true"
 ```
 
 See [`.env.example`](./.env.example) for the full credential template.
@@ -135,8 +153,8 @@ uv run main.py --groups core --servers keyword_plan_idea
 ### Keyword research and forecasting
 
 `keyword_plan_idea` carries the Keyword Planner tools. They require **Basic**
-(or Standard) API access — under Explorer access the planning services are
-blocked.
+(or Standard) API access on your Google Cloud project — under Explorer access
+the planning services are blocked.
 
 | Tool | Use |
 |------|-----|
@@ -189,10 +207,8 @@ Example stdio configuration:
       "args": ["run", "main.py", "--groups", "all"],
       "cwd": "/path/to/google-ads-mcp",
       "env": {
-        "GOOGLE_ADS_DEVELOPER_TOKEN": "...",
-        "GOOGLE_ADS_CLIENT_ID": "...",
-        "GOOGLE_ADS_CLIENT_SECRET": "...",
-        "GOOGLE_ADS_REFRESH_TOKEN": "..."
+        "GOOGLE_ADS_JSON_KEY_FILE_PATH": "/path/to/service-account.json",
+        "GOOGLE_ADS_USE_PROTO_PLUS": "true"
       }
     }
   }
